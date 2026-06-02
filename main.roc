@@ -83,157 +83,158 @@ expect
 expect
     Bool.not(is_palindrome(["a", "b"])) == Bool.True
 
-#Node(a) := [One(a), Many(List(Node(a)))]
-#
-#flatten : List(Node(a)) -> List(a)
-#flatten = |input| {
-#    flatten_aux = |l, acc| {
-#        match l {
-#            [] => acc
-#            [One(e), .. as rest] => flatten_aux(rest, List.append(acc, e))
-#            [Many(e), .. as rest] => flatten_aux(rest, flatten_aux(e, acc))
-#        }
-#    }
-#    flatten_aux(input, [])
-#}
-#
-#expect
-#    flatten([One("a"), Many([One("b"), Many([One("c"), One("d")]), One("e")])]) == ["a", "b", "c", "d", "e"]
+Node(a) := [One(a), Many(List(Node(a)))]
 
-#compress : List(a) -> List(a) where [a.is_eq : a, a -> Bool]
-#compress = |l| {
-#    match l {
-#        [] => []
-#        [e] => [e]
-#        [e1, e2, .. as rest] => {
-#            rest_compression = compress(List.concat([e2], rest))
-#            if e1 == e2 { rest_compression } else { List.concat([e1], rest_compression) }
-#        }
-#    }
-#}
-#
-#expect
-#    compress(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == ["a", "b", "c", "a", "d", "e"]
+flatten : List(Node(a)) -> List(a)
+flatten = |input| {
+    flatten_aux = |l, acc| {
+        match l {
+            [] => acc
+            [One(e), .. as rest] => flatten_aux(rest, List.append(acc, e))
+            [Many(e), .. as rest] => flatten_aux(rest, flatten_aux(e, acc))
+        }
+    }
+    flatten_aux(input, [])
+}
 
-#pack : List(a) -> List(List(a)) where [a.is_eq : a, a -> Bool]
-#pack = |input| {
-#    pack_aux = |l, acc| {
-#        match l {
-#            [] => acc
-#            [e, .. as rest] => {
-#                rest_pack = pack_aux(rest, [])
-#                match rest_pack {
-#                    [] => [[e]]
-#                    [[rpe, ..] as p, .. as rprest] => {
-#                        if e == rpe {
-#                            List.concat([List.append(p, e)], rprest)
-#                        } else {
-#                            List.concat([[e]], rest_pack)
-#                        }
-#                    }
-#
-#                    _ => {
-#                        crash "unreachable"
-#                    }
-#                }
-#            }
-#        }
-#    }
-#    pack_aux(input, [])
-#}
-#
-#expect
-#    pack(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "d", "e", "e", "e", "e"]) == [["a", "a", "a", "a"], ["b"], ["c", "c"], ["a", "a"], ["d", "d"], ["e", "e", "e", "e"]]
+expect
+    flatten([One("a"), Many([One("b"), Many([One("c"), One("d")]), One("e")])]) == ["a", "b", "c", "d", "e"]
 
-#encode1 : List(a) -> List((U64, a)) where [a.is_eq : a, a -> Bool]
-#encode1 = |input| {
-#    List.map(
-#        pack(input),
-#        |l| {
-#            match l {
-#                [e, ..] => (length(l), e)
-#                _ => {
-#                    crash "unreachable"
-#                }
-#            }
-#        },
-#    )
-#}
-#
-#expect
-#    encode1(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [(4, "a"), (1, "b"), (2, "c"), (2, "a"), (1, "d"), (4, "e")]
+compress : List(a) -> List(a) where [a.is_eq : a, a -> Bool]
+compress = |l| {
+    match l {
+        [] => []
+        [e] => [e]
+        [e1, e2, .. as rest] => {
+            rest_compression = compress(List.concat([e2], rest))
+            if e1 == e2 { rest_compression } else { List.concat([e1], rest_compression) }
+        }
+    }
+}
 
-#Rle(a) : [One(a), Many(U64, a)]
-#
-#encode2 : List(a) -> List(Rle(a)) where [a.is_eq : a, a -> Bool]
-#encode2 = |input| {
-#    List.map(
-#        pack(input),
-#        |l| {
-#            match l {
-#                [e, ..] => {
-#                    len = length(l)
-#                    if len == 1 {
-#                        One(e)
-#                    } else {
-#                        Many((len, e))
-#                    }
-#                }
-#                _ => {
-#                    crash "unreachable"
-#                }
-#            }
-#        },
-#    )
-#}
-#
-#expect
-#    encode2(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [Many((4, "a")), One("b"), Many((2, "c")), Many((2, "a")), One("d"), Many((4, "e"))]
+expect
+    compress(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == ["a", "b", "c", "a", "d", "e"]
 
-#decode : List(Rle(a)) -> List(a)
-#decode = |l| {
-#    List.join_map(
-#        l,
-#        |rle| {
-#            match rle {
-#                One(e) => [e]
-#                Many((n, e)) => List.repeat(e, n)
-#            }
-#        },
-#    )
-#}
-#
-#expect
-#    decode([Many((4, "a")), One("b"), Many((2, "c")), Many((2, "a")), One("d"), Many((4, "e"))]) == ["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]
+pack : List(a) -> List(List(a)) where [a.is_eq : a, a -> Bool]
+pack = |input| {
+    pack_aux = |l, acc| {
+        match l {
+            [] => acc
+            [e, .. as rest] => {
+                rest_pack = pack_aux(rest, [])
+                match rest_pack {
+                    [] => [[e]]
+                    [[rpe, ..] as p, .. as rprest] => {
+                        if e == rpe {
+                            List.concat([List.append(p, e)], rprest)
+                        } else {
+                            List.concat([[e]], rest_pack)
+                        }
+                    }
 
-#encode3 : List(a) -> List(Rle(a)) where [a.is_eq : a, a -> Bool]
-#encode3 = |l| {
-#    match l {
-#        [] => []
-#        [e, .. as rest] => {
-#            encode_rest = encode3(rest)
-#            match encode_rest {
-#                [] => [One(e)]
-#                [er, .. as errest] => {
-#                    (element, number) =
-#                        match er {
-#                            One(el) => (el, 1)
-#                            Many((n, el)) => (el, n)
-#                        }
-#
-#                    if e == element {
-#                        List.concat([Many((number + 1, e))], errest)
-#                    } else {
-#                        List.concat([One(e)], encode_rest)
-#                    }
-#                }
-#            }
-#        }
-#    }
-#}
-#
-#expect
-#    encode3(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [Many((4, "a")), One("b"), Many((2, "c")), Many((2, "a")), One("d"), Many((4, "e"))]
+                    _ => {
+                        crash "unreachable"
+                    }
+                }
+            }
+        }
+    }
+    pack_aux(input, [])
+}
+
+expect
+    pack(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "d", "e", "e", "e", "e"]) == [["a", "a", "a", "a"], ["b"], ["c", "c"], ["a", "a"], ["d", "d"], ["e", "e", "e", "e"]]
+
+encode1 : List(a) -> List((U64, a)) where [a.is_eq : a, a -> Bool]
+encode1 = |input| {
+    List.map(
+        pack(input),
+        |l| {
+            match l {
+                [e, ..] => (length(l), e)
+                _ => {
+                    crash "unreachable"
+                }
+            }
+        },
+    )
+}
+
+expect
+    encode1(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [(4, "a"), (1, "b"), (2, "c"), (2, "a"), (1, "d"), (4, "e")]
+
+Rle(a) : [One(a), Many(U64, a)]
+
+encode2 : List(a) -> List(Rle(a)) where [a.is_eq : a, a -> Bool]
+encode2 = |input| {
+    List.map(
+        pack(input),
+        |l| {
+            match l {
+                [e, ..] => {
+                    len = length(l)
+                    if len == 1 {
+                        One(e)
+                    } else {
+                        Many(len, e)
+                    }
+                }
+                _ => {
+                    crash "unreachable"
+                }
+            }
+        },
+    )
+}
+
+expect
+    encode2(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [Many(4, "a"), One("b"), Many(2, "c"), Many(2, "a"), One("d"), Many(4, "e")]
+
+decode : List(Rle(a)) -> List(a)
+decode = |l| {
+    List.fold(
+        l,
+        [],
+        |state, rle| {
+            match rle {
+                One(e) => List.append(state, e)
+                Many(n, e) => List.concat(state, List.repeat(e, n))
+            }
+        },
+    )
+}
+
+expect
+    decode([Many(4, "a"), One("b"), Many(2, "c"), Many(2, "a"), One("d"), Many(4, "e")]) == ["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]
+
+encode3 : List(a) -> List(Rle(a)) where [a.is_eq : a, a -> Bool]
+encode3 = |l| {
+    match l {
+        [] => []
+        [e, .. as rest] => {
+            encode_rest = encode3(rest)
+            match encode_rest {
+                [] => [One(e)]
+                [er, .. as errest] => {
+                    (element, number) =
+                        match er {
+                            One(el) => (el, 1)
+                            Many(n, el) => (el, n)
+                        }
+
+                    if e == element {
+                        List.concat([Many(number + 1, e)], errest)
+                    } else {
+                        List.concat([One(e)], encode_rest)
+                    }
+                }
+            }
+        }
+    }
+}
+
+expect
+    encode3(["a", "a", "a", "a", "b", "c", "c", "a", "a", "d", "e", "e", "e", "e"]) == [Many(4, "a"), One("b"), Many(2, "c"), Many(2, "a"), One("d"), Many(4, "e")]
 
 duplicate : List(a) -> List(a)
 duplicate = |l| {
@@ -317,3 +318,7 @@ slice = |l, start, end| {
 
 expect
     slice(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], 2, 6) == ["c", "d", "e", "f", "g"]
+
+main! = |_| {
+    Ok({})
+}
