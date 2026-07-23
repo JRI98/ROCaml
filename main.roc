@@ -87,6 +87,7 @@ Node(a) := [One(a), Many(List(Node(a)))]
 
 flatten : List(Node(a)) -> List(a)
 flatten = |input| {
+	flatten_aux : List(Node(a)), List(a) -> List(a)
 	flatten_aux = |l, acc| {
 		match l {
 			[] => acc
