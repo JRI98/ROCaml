@@ -221,7 +221,7 @@ encode3 = |l| {
 			match encode_rest {
 				[] => [One(e)]
 				[er, .. as errest] => {
-					(element, number) = 
+					(element, number) =
 						match er {
 							One(el) => (el, 1)
 							Many(n, el) => (el, n)
